@@ -61,7 +61,7 @@ clean:
 	$(MAKE) -C $(UTILS_DIR) clean
 	$(MAKE) -C $(FUNC_DIR) clean
 	rm -f $(OBJ_DIR)/main/*.o
-	rm -f $(BIN_DIR)/*
+	rm -r $(BIN_DIR)/*
 
 # Run tests with input from test directory
 test: all
