@@ -1,6 +1,8 @@
 #include "Display.hpp"
 #include <iostream>
 #include <string>
+#include <limits>  // For std::numeric_limits
+#include <ctime>   // For time functions
 
 namespace Display {
 
@@ -20,20 +22,71 @@ void displayMenu() {
 void addBookMenu(Library& library) {
     std::string title, author;
     int year;
+    bool validInput = false;
     
     std::cout << "\nAdd a new book\n";
     std::cout << "---------------\n";
     
-    std::cin.ignore();
-    std::cout << "Enter title: ";
-    std::getline(std::cin, title);
+    // Clear any leftover characters in the input buffer
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     
-    std::cout << "Enter author: ";
-    std::getline(std::cin, author);
+    // Title validation loop
+    do {
+        std::cout << "Enter title (cannot be empty): ";
+        std::getline(std::cin, title);
+        
+        if (title.empty()) {
+            std::cout << "Error: Title cannot be empty. Please try again.\n";
+        } else {
+            validInput = true;
+        }
+    } while (!validInput);
     
-    std::cout << "Enter publication year: ";
-    std::cin >> year;
+    // Reset validation flag for author
+    validInput = false;
     
+    // Author validation loop
+    do {
+        std::cout << "Enter author (cannot be empty): ";
+        std::getline(std::cin, author);
+        
+        if (author.empty()) {
+            std::cout << "Error: Author cannot be empty. Please try again.\n";
+        } else {
+            validInput = true;
+        }
+    } while (!validInput);
+    
+    // Reset validation flag for year
+    validInput = false;
+    
+    // Year validation loop
+    do {
+        std::cout << "Enter publication year (must be between 1000 and current year): ";
+        
+        // Check if input is a number
+        if (!(std::cin >> year)) {
+            std::cin.clear(); // Clear error flag
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard invalid input
+            std::cout << "Error: Year must be a number. Please try again.\n";
+            continue;
+        }
+        
+        // Get current year for validation
+        time_t now = time(0);
+        tm *ltm = localtime(&now);
+        int currentYear = 1900 + ltm->tm_year;
+        
+        // Validate year range (arbitrary minimum of 1000 to catch errors)
+        if (year < 1000 || year > currentYear) {
+            std::cout << "Error: Year must be between 1000 and " << currentYear << ". Please try again.\n";
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        } else {
+            validInput = true;
+        }
+    } while (!validInput);
+    
+    // Now we can add the book since all inputs are valid
     if (library.addBook(title, author, year)) {
         std::cout << "Book added successfully.\n";
     } else {
