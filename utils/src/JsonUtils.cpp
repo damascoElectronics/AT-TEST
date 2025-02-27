@@ -1,7 +1,8 @@
 // utils/src/JsonUtils.cpp
 #include "JsonUtils.hpp"
-#include <fstream>
+#include "File.hpp"
 #include <nlohmann/json.hpp>
+#include <iostream>
 
 using json = nlohmann::json;
 
@@ -9,26 +10,32 @@ namespace JsonUtils {
 
 std::vector<Book> readBooksFromFile(const std::string& filename) {
     std::vector<Book> books;
-    std::ifstream file(filename);
     
-    if (file.is_open()) {
-        try {
-            json j;
-            file >> j;
-            
-            for (const auto& bookJson : j) {
-                Book book;
-                book.setId(bookJson["id"]);
-                book.setTitle(bookJson["title"]);
-                book.setAuthor(bookJson["author"]);
-                book.setYear(bookJson["year"]);
-                book.setAvailable(bookJson["available"]);
-                books.push_back(book);
-            }
-        } catch (const std::exception& e) {
-            // Handle JSON parsing errors
+    if (!FileUtils::fileExists(filename)) {
+        // Create an empty JSON array file if it doesn't exist
+        FileUtils::writeFile(filename, "[]");
+        return books;
+    }
+    
+    std::string content = FileUtils::readFile(filename);
+    if (content.empty()) {
+        return books;
+    }
+    
+    try {
+        json j = json::parse(content);
+        
+        for (const auto& bookJson : j) {
+            Book book;
+            book.setId(bookJson["id"]);
+            book.setTitle(bookJson["title"]);
+            book.setAuthor(bookJson["author"]);
+            book.setYear(bookJson["year"]);
+            book.setAvailable(bookJson["available"]);
+            books.push_back(book);
         }
-        file.close();
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing JSON: " << e.what() << std::endl;
     }
     
     return books;
@@ -47,14 +54,7 @@ bool writeBooksToFile(const std::string& filename, const std::vector<Book>& book
         j.push_back(bookJson);
     }
     
-    std::ofstream file(filename);
-    if (file.is_open()) {
-        file << j.dump(4); // Pretty print with 4-space indentation
-        file.close();
-        return true;
-    }
-    
-    return false;
+    return FileUtils::writeFile(filename, j.dump(4)); // Pretty print with 4-space indentation
 }
 
 std::string bookToJson(const Book& book) {
@@ -78,7 +78,7 @@ Book jsonToBook(const std::string& jsonStr) {
         book.setYear(j["year"]);
         book.setAvailable(j["available"]);
     } catch (const std::exception& e) {
-        // Handle JSON parsing errors
+        std::cerr << "Error parsing JSON: " << e.what() << std::endl;
     }
     
     return book;
