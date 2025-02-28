@@ -52,7 +52,7 @@ check_build_tools() {
         echo "${GREEN}make found: /bin/make${NC}"
         MAKE_COMMAND="/bin/make"
     else
-        echo -e "${RED}make not found. Please install make to compile the project.${NC}"
+        echo "${RED}make not found. Please install make to compile the project.${NC}"
         if [ "$OS" == "linux" ]; then
             echo "${YELLOW}On most Linux distributions, you can install make with:${NC}"
             echo "  sudo apt-get install build-essential    (Debian/Ubuntu)"
@@ -117,10 +117,10 @@ check_json_lib() {
                 return 1
             fi
         else
-            echo -e "${RED}Neither curl nor wget found. Cannot download JSON library.${NC}"
-            echo -e "${YELLOW}Please manually download the JSON library from:${NC}"
-            echo -e "https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp"
-            echo -e "${YELLOW}and save it to deps/include/json.hpp${NC}"
+            echo "${RED}Neither curl nor wget found. Cannot download JSON library.${NC}"
+            echo "${YELLOW}Please manually download the JSON library from:${NC}"
+            echo "https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp"
+            echo "${YELLOW}and save it to deps/include/json.hpp${NC}"
             return 1
         fi
     fi
@@ -132,18 +132,18 @@ check_json_lib() {
 compile_project() {
     echo "\n${BOLD}Compiling project...${NC}"
     
-    # Check if make is installed
-    if ! command -v make &> /dev/null; then
-        echo "${RED}Make is not installed. Cannot compile project.${NC}"
+    # Check if MAKE_COMMAND is set
+    if [ -z "$MAKE_COMMAND" ]; then
+        echo "${RED}Make command not found. Cannot compile project.${NC}"
         return 1
     fi
     
     # Clean and compile
     echo "${BLUE}Running make clean...${NC}"
-    make clean
+    $MAKE_COMMAND clean
     
     echo "${BLUE}Running make...${NC}"
-    make
+    $MAKE_COMMAND
     
     if [ $? -eq 0 ]; then
         echo "${GREEN}Compilation successful!${NC}"
@@ -161,7 +161,7 @@ run_program() {
     if [ -f "bin/library_management_system" ]; then
         echo  "\n${BLUE}Starting program...${NC}"
         echo  "${BOLD}${BLUE}================================${NC}"
-        bin/library_management_system
+        ./bin/library_management_system
     else
         echo "${RED}Executable not found. Compilation may have failed.${NC}"
         return 1
@@ -171,6 +171,13 @@ run_program() {
 # Main execution flow
 main() {
     detect_os
+    check_build_tools
+    
+    if [ $? -ne 0 ]; then
+        echo "${RED}Required build tools missing. Exiting.${NC}"
+        exit 1
+    fi
+    
     check_json_lib
     
     if [ $? -ne 0 ]; then
