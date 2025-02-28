@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Library Management System Build and Run Script
 # This script detects OS, checks for nlohmann_json library, 
@@ -22,28 +22,34 @@ echo  "${BOLD}${BLUE}================================${NC}"
 detect_os() {
     echo "\n${BOLD}Detecting operating system...${NC}"
     
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        echo "${GREEN}Linux detected.${NC}"
-        OS="linux"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "${GREEN}macOS detected.${NC}"
-        OS="macos"
-    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-        echo "${GREEN}Windows detected.${NC}"
-        OS="windows"
-    else
-        echo "${YELLOW}Unknown OS. Will attempt to proceed anyway.${NC}"
-        OS="unknown"
-    fi
+    case "$OSTYPE" in
+        linux*)
+            echo "${GREEN}Linux detected.${NC}"
+            OS="linux"
+            ;;
+        darwin*)
+            echo "${GREEN}macOS detected.${NC}"
+            OS="macos"
+            ;;
+        msys*|cygwin*|mingw*)
+            echo "${GREEN}Windows detected.${NC}"
+            OS="windows"
+            ;;
+        *)
+            echo "${YELLOW}Unknown OS. Will attempt to proceed anyway.${NC}"
+            OS="unknown"
+            ;;
+    esac
 }
 
 # Function to check for required build tools
 check_build_tools() {
     echo "\n${BOLD}Checking for required build tools...${NC}"
     
-    # Different ways to check for make, especially for Linux
-    if command -v make &> /dev/null; then
-        echo "${GREEN}make found: $(which make)${NC}"
+    # Check for make
+    if command -v make > /dev/null 2>&1; then
+        MAKE_PATH=$(which make)
+        echo "${GREEN}make found: $MAKE_PATH${NC}"
         MAKE_COMMAND="make"
     elif [ -f "/usr/bin/make" ]; then
         echo "${GREEN}make found: /usr/bin/make${NC}"
@@ -53,12 +59,12 @@ check_build_tools() {
         MAKE_COMMAND="/bin/make"
     else
         echo "${RED}make not found. Please install make to compile the project.${NC}"
-        if [ "$OS" == "linux" ]; then
+        if [ "$OS" = "linux" ]; then
             echo "${YELLOW}On most Linux distributions, you can install make with:${NC}"
             echo "  sudo apt-get install build-essential    (Debian/Ubuntu)"
             echo "  sudo yum install make                   (CentOS/RHEL)"
             echo "  sudo dnf install make                   (Fedora)"
-        elif [ "$OS" == "macos" ]; then
+        elif [ "$OS" = "macos" ]; then
             echo "${YELLOW}On macOS, you can install make with:${NC}"
             echo "  xcode-select --install"
         fi
@@ -66,18 +72,19 @@ check_build_tools() {
     fi
     
     # Check for g++
-    if command -v g++ &> /dev/null; then
-        echo "${GREEN}g++ found: $(which g++)${NC}"
+    if command -v g++ > /dev/null 2>&1; then
+        CPP_PATH=$(which g++)
+        echo "${GREEN}g++ found: $CPP_PATH${NC}"
     elif [ -f "/usr/bin/g++" ]; then
         echo "${GREEN}g++ found: /usr/bin/g++${NC}"
     else
         echo "${YELLOW}g++ may not be in PATH. Compilation might fail if g++ is not available.${NC}"
-        if [ "$OS" == "linux" ]; then
+        if [ "$OS" = "linux" ]; then
             echo "${YELLOW}On most Linux distributions, you can install g++ with:${NC}"
             echo "  sudo apt-get install g++               (Debian/Ubuntu)"
             echo "  sudo yum install gcc-c++              (CentOS/RHEL)"
             echo "  sudo dnf install gcc-c++              (Fedora)"
-        elif [ "$OS" == "macos" ]; then
+        elif [ "$OS" = "macos" ]; then
             echo "${YELLOW}On macOS, you can install g++ with:${NC}"
             echo "  xcode-select --install"
         fi
@@ -90,26 +97,26 @@ check_build_tools() {
 check_json_lib() {
     echo "\n${BOLD}Checking for nlohmann/json library...${NC}"
     
-    # Create deps directory if it doesn't exist
-    mkdir -p deps/include
+    # Create deps directory structure
+    mkdir -p deps/include/nlohmann
     
     # Check if the JSON file already exists
-    if [ -f "deps/include/json.hpp" ]; then
-        echo "${GREEN}JSON library already installed in deps/include/json.hpp${NC}"
+    if [ -f "deps/include/nlohmann/json.hpp" ]; then
+        echo "${GREEN}JSON library already installed in deps/include/nlohmann/json.hpp${NC}"
     else
         echo "${YELLOW}JSON library not found in deps. Downloading...${NC}"
         
         # Try to download the single-include JSON header
-        if command -v curl &> /dev/null; then
-            curl -s -o deps/include/json.hpp https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp
+        if command -v curl > /dev/null 2>&1; then
+            curl -s -o deps/include/nlohmann/json.hpp https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp
             if [ $? -eq 0 ]; then
                 echo "${GREEN}Successfully downloaded JSON library.${NC}"
             else
                 echo "${RED}Failed to download JSON library with curl.${NC}"
                 return 1
             fi
-        elif command -v wget &> /dev/null; then
-            wget -q -O deps/include/json.hpp https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp
+        elif command -v wget > /dev/null 2>&1; then
+            wget -q -O deps/include/nlohmann/json.hpp https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp
             if [ $? -eq 0 ]; then
                 echo "${GREEN}Successfully downloaded JSON library.${NC}"
             else
@@ -120,7 +127,7 @@ check_json_lib() {
             echo "${RED}Neither curl nor wget found. Cannot download JSON library.${NC}"
             echo "${YELLOW}Please manually download the JSON library from:${NC}"
             echo "https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp"
-            echo "${YELLOW}and save it to deps/include/json.hpp${NC}"
+            echo "${YELLOW}and save it to deps/include/nlohmann/json.hpp${NC}"
             return 1
         fi
     fi
@@ -140,7 +147,7 @@ compile_project() {
     
     # Clean and compile
     echo "${BLUE}Running make clean...${NC}"
-    $MAKE_COMMAND clean
+    $MAKE_COMMAND clean || true  # Continue even if clean fails
     
     echo "${BLUE}Running make...${NC}"
     $MAKE_COMMAND
@@ -194,18 +201,21 @@ main() {
     
     # Ask if user wants to run the program
     echo "\n${BOLD}Do you want to run the program now? (y/n)${NC}"
-    read -r answer
+    read answer
     
-    if [[ "$answer" =~ ^[Yy] ]]; then
-        run_program
-    else
-        echo "\n${BLUE}To run the program later, use:${NC}"
-        echo "${BOLD}./run.sh run${NC}"
-    fi
+    case "$answer" in
+        [Yy]*)
+            run_program
+            ;;
+        *)
+            echo "\n${BLUE}To run the program later, use:${NC}"
+            echo "${BOLD}./run.sh run${NC}"
+            ;;
+    esac
 }
 
 # Allow running just a specific function
-if [ "$1" == "run" ]; then
+if [ "$1" = "run" ]; then
     run_program
     exit 0
 fi
