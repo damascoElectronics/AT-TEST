@@ -37,6 +37,55 @@ detect_os() {
     fi
 }
 
+# Function to check for required build tools
+check_build_tools() {
+    echo "\n${BOLD}Checking for required build tools...${NC}"
+    
+    # Different ways to check for make, especially for Linux
+    if command -v make &> /dev/null; then
+        echo "${GREEN}make found: $(which make)${NC}"
+        MAKE_COMMAND="make"
+    elif [ -f "/usr/bin/make" ]; then
+        echo "${GREEN}make found: /usr/bin/make${NC}"
+        MAKE_COMMAND="/usr/bin/make"
+    elif [ -f "/bin/make" ]; then
+        echo "${GREEN}make found: /bin/make${NC}"
+        MAKE_COMMAND="/bin/make"
+    else
+        echo -e "${RED}make not found. Please install make to compile the project.${NC}"
+        if [ "$OS" == "linux" ]; then
+            echo "${YELLOW}On most Linux distributions, you can install make with:${NC}"
+            echo "  sudo apt-get install build-essential    (Debian/Ubuntu)"
+            echo "  sudo yum install make                   (CentOS/RHEL)"
+            echo "  sudo dnf install make                   (Fedora)"
+        elif [ "$OS" == "macos" ]; then
+            echo "${YELLOW}On macOS, you can install make with:${NC}"
+            echo "  xcode-select --install"
+        fi
+        return 1
+    fi
+    
+    # Check for g++
+    if command -v g++ &> /dev/null; then
+        echo "${GREEN}g++ found: $(which g++)${NC}"
+    elif [ -f "/usr/bin/g++" ]; then
+        echo "${GREEN}g++ found: /usr/bin/g++${NC}"
+    else
+        echo "${YELLOW}g++ may not be in PATH. Compilation might fail if g++ is not available.${NC}"
+        if [ "$OS" == "linux" ]; then
+            echo "${YELLOW}On most Linux distributions, you can install g++ with:${NC}"
+            echo "  sudo apt-get install g++               (Debian/Ubuntu)"
+            echo "  sudo yum install gcc-c++              (CentOS/RHEL)"
+            echo "  sudo dnf install gcc-c++              (Fedora)"
+        elif [ "$OS" == "macos" ]; then
+            echo "${YELLOW}On macOS, you can install g++ with:${NC}"
+            echo "  xcode-select --install"
+        fi
+    fi
+    
+    return 0
+}
+
 # Function to check and install nlohmann_json library
 check_json_lib() {
     echo "\n${BOLD}Checking for nlohmann/json library...${NC}"
